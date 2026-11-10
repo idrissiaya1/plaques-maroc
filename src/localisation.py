@@ -10,10 +10,10 @@ def localiser_plaque(img):
     # 1) Préparation
     gris = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     flou = cv2.bilateralFilter(gris, 11, 17, 17)
-    bords = cv2.Canny(flou, 30, 200)
+    bords = cv2.Canny(flou, 150, 200)
 
     # 2) Fermeture : relie les bords proches en blocs horizontaux
-    noyau = cv2.getStructuringElement(cv2.MORPH_RECT, (17, 3))
+    noyau = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 2))
     blocs = cv2.morphologyEx(bords, cv2.MORPH_CLOSE, noyau)
 
     # 3) Contours des blocs

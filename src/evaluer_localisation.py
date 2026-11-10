@@ -34,18 +34,22 @@ def iou(a, b):
     return inter / union if union > 0 else 0
 
 
-chemins = sorted(glob.glob(f"data/images/{SPLIT}/images/*"))
-corrects, non_trouvees = 0, 0
-for chemin in chemins:
-    img = cv2.imread(chemin)
-    boite = localiser_plaque(img)
-    if boite is None:
-        non_trouvees += 1
-        continue
-    x, y, w, h = boite
-    if iou((x, y, x + w, y + h), lire_verite(chemin)) >= SEUIL_IOU:
-        corrects += 1
+# ==========================================
+# Protection pour les imports futurs
+# ==========================================
+if __name__ == "__main__":
+    chemins = sorted(glob.glob(f"data/images/{SPLIT}/images/*"))
+    corrects, non_trouvees = 0, 0
+    for chemin in chemins:
+        img = cv2.imread(chemin)
+        boite = localiser_plaque(img)
+        if boite is None:
+            non_trouvees += 1
+            continue
+        x, y, w, h = boite
+        if iou((x, y, x + w, y + h), lire_verite(chemin)) >= SEUIL_IOU:
+            corrects += 1
 
-print(f"{SPLIT} : {len(chemins)} images")
-print(f"Localisations correctes : {corrects} ({100 * corrects / len(chemins):.1f} %)")
-print(f"Aucune plaque trouvée  : {non_trouvees}")
+    print(f"{SPLIT} : {len(chemins)} images")
+    print(f"Localisations correctes : {corrects} ({100 * corrects / len(chemins):.1f} %)")
+    print(f"Aucune plaque trouvée  : {non_trouvees}")
