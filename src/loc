@@ -1,0 +1,30 @@
+import cv2
+
+
+def detecter_plaque(image_bgr):
+  # 1. Conversion en niveaux de gris
+  gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+
+  # 2. Filtre bilatéral pour réduire le bruit
+  bifilter = cv2.bilateralFilter(gray, 11, 17, 17)
+
+  # 3. Détection des contours (Canny)
+  edged = cv2.Canny(bifilter, 30, 200)
+
+  # 4. Recherche des contours
+  contours, _ = cv2.findContours(
+      edged.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+  )
+  contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
+
+  plate_crop_color = None
+  for c in contours:
+    approx = cv2.approxPolyDP(c, 0.018 * cv2.arcLength(c, True), True)
+    if len(approx) == 4:
+      x, y, w, h = cv2.boundingRect(approx)
+      aspect_ratio = w / float(h)
+      if 2.0 < aspect_ratio < 5.5:
+        plate_crop_color = image_bgr[y : y + h, x : x + h]
+        break
+
+  return plate_crop_color
