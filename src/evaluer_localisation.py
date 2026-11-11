@@ -5,7 +5,7 @@ import os
 import cv2
 from localisation import localiser_plaque
 
-SPLIT = "valid"      # règle tes paramètres sur valid, mesure sur test à la fin
+SPLIT = "valid"      # règle sur valid ; mesure sur test UNE SEULE fois, à la fin
 SEUIL_IOU = 0.5
 
 
@@ -34,9 +34,6 @@ def iou(a, b):
     return inter / union if union > 0 else 0
 
 
-# ==========================================
-# Protection pour les imports futurs
-# ==========================================
 if __name__ == "__main__":
     chemins = sorted(glob.glob(f"data/images/{SPLIT}/images/*"))
     corrects, non_trouvees = 0, 0
@@ -50,6 +47,8 @@ if __name__ == "__main__":
         if iou((x, y, x + w, y + h), lire_verite(chemin)) >= SEUIL_IOU:
             corrects += 1
 
+    mauvais = len(chemins) - corrects - non_trouvees
     print(f"{SPLIT} : {len(chemins)} images")
     print(f"Localisations correctes : {corrects} ({100 * corrects / len(chemins):.1f} %)")
     print(f"Aucune plaque trouvée  : {non_trouvees}")
+    print(f"Mauvais rectangle      : {mauvais}")

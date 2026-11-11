@@ -1,44 +1,65 @@
 # src/reglage.py
-# Script de réglage pour tester l'impact des paramètres sur la localisation
-import os
-import cv2
+# Teste l'impact d'un paramètre de localisation.py sur le taux de localisation.
 import glob
+import cv2
 
-# Importation de votre fonction d'évaluation existante
+import localisation as L
 from evaluer_localisation import lire_verite, iou
-from localisation import localiser_plaque
 
-SPLIT = "valid"
+SPLIT = "valid"        # on règle sur valid ; test est réservé à la mesure finale
 SEUIL_IOU = 0.5
 
-def tester_parametres(canny_bas=50, noyau=3, ratio_min=2.0, ratio_max=6.0):
-    """
-    Fonction pour tester un jeu de paramètres spécifique.
-    (Vous pouvez adapter les noms des variables selon votre fichier localisation.py)
-    """
-    chemins = sorted(glob.glob(f"data/images/{SPLIT}/images/*"))
+# --- Chargement unique : les images sont lues une seule fois ---
+chemins = sorted(glob.glob(f"data/images/{SPLIT}/images/*"))
+images = [cv2.imread(c) for c in chemins]
+verites = [lire_verite(c) for c in chemins]
+
+
+def evaluer():
+    """Lance localiser_plaque sur toutes les images et compte les résultats."""
     corrects, non_trouvees = 0, 0
-    
-    for chemin in chemins:
-        img = cv2.imread(chemin)
-        
-        # Si votre fonction localiser_plaque accepte des paramètres personnalisés, 
-        # vous pouvez les passer ici. Sinon, ajustez-les directement dans localisation.py
-        boite = localiser_plaque(img)
-        
+    for img, verite in zip(images, verites):
+        boite = L.localiser_plaque(img)
         if boite is None:
             non_trouvees += 1
             continue
-            
         x, y, w, h = boite
-        if iou((x, y, x + w, y + h), lire_verite(chemin)) >= SEUIL_IOU:
+        if iou((x, y, x + w, y + h), verite) >= SEUIL_IOU:
             corrects += 1
-            
-    taux = 100 * corrects / len(chemins)
-    print(f"Paramètres testés -> Corrects: {corrects}/{len(chemins)} ({taux:.1f} %) | Non trouvées: {non_trouvees}")
+    taux = 100 * corrects / len(images)
+    return corrects, non_trouvees, taux
+
+
+def tester_parametres(**params):
+    """Change temporairement des paramètres de localisation.py, évalue, puis remet tout."""
+    for nom in params:
+        if not hasattr(L, nom):
+            raise AttributeError(f"'{nom}' n'existe pas dans localisation.py")
+    originaux = {nom: getattr(L, nom) for nom in params}
+    for nom, valeur in params.items():
+        setattr(L, nom, valeur)
+    try:
+        corrects, non_trouvees, taux = evaluer()
+    finally:
+        for nom, valeur in originaux.items():
+            setattr(L, nom, valeur)
+    mauvais = len(images) - corrects - non_trouvees
+    print(f"{params} -> corrects {corrects}/{len(images)} ({taux:.1f} %) | "
+          f"sans résultat {non_trouvees} | mauvais rectangle {mauvais}")
     return taux
 
+
+def balayer(parametre, valeurs):
+    """Teste plusieurs valeurs d'un seul paramètre."""
+    print(f"\n--- Test de {parametre} ---")
+    for valeur in valeurs:
+        tester_parametres(**{parametre: valeur})
+
+
 if __name__ == "__main__":
-    print("--- Lancement des tests de réglage ---")
-    # Premier test avec les valeurs par défaut
+    print(f"Images de {SPLIT} : {len(images)}")
+    print("\n--- Référence (valeurs actuelles de localisation.py) ---")
     tester_parametres()
+
+    balayer("AIRE_MIN", [0.003, 0.005, 0.008, 0.012])
+    balayer("AIRE_MAX", [0.05, 0.10, 0.15, 0.30])
