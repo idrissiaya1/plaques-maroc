@@ -3,19 +3,19 @@
 # puis choix du meilleur candidat par un score (densité de bords, forme, ratio).
 import cv2
 
-# ---- Paramètres à régler (ils sont lus à chaque appel de la fonction) ----
+# ---- Paramètres à régler (ils sont lus à chaque appel des fonctions) ----
 CANNY_BAS = 100                     # seuil bas de Canny
 CANNY_HAUT = 200                    # seuil haut de Canny
 NOYAU = (9, 3)                      # fermeture : (largeur, hauteur) du noyau
 RATIO_MIN = 2.0                     # rapport largeur/hauteur minimal
 RATIO_MAX = 9.0                     # rapport largeur/hauteur maximal
 RATIO_IDEAL = 4.5                   # rapport typique d'une plaque marocaine
-AIRE_MIN = 0.008                   # aire minimale du cadre / aire de l'image
+AIRE_MIN = 0.008                    # aire minimale du cadre / aire de l'image
 AIRE_MAX = 0.15                     # aire maximale du cadre / aire de l'image
 
 
-def localiser_plaque(img):
-    """Renvoie (x, y, w, h) de la meilleure plaque candidate, ou None."""
+def lister_candidats(img):
+    """Renvoie tous les candidats [(score, (x, y, w, h)), ...], du meilleur au pire."""
     h_img, w_img = img.shape[:2]
     surface = h_img * w_img
 
@@ -33,7 +33,7 @@ def localiser_plaque(img):
                                    cv2.CHAIN_APPROX_SIMPLE)
 
     # 4) Filtre puis score pour chaque candidat
-    meilleur, meilleur_score = None, 0.0
+    candidats = []
     for c in contours:
         x, y, w, h = cv2.boundingRect(c)
         if h == 0:
@@ -53,7 +53,14 @@ def localiser_plaque(img):
         score_ratio = 1 - min(abs(ratio - RATIO_IDEAL) / RATIO_IDEAL, 1)
 
         score = densite * rectangularite * score_ratio
-        if score > meilleur_score:
-            meilleur, meilleur_score = (x, y, w, h), score
+        if score > 0:
+            candidats.append((score, (x, y, w, h)))
 
-    return meilleur
+    candidats.sort(key=lambda c: c[0], reverse=True)
+    return candidats
+
+
+def localiser_plaque(img):
+    """Renvoie (x, y, w, h) du meilleur candidat, ou None s'il n'y en a aucun."""
+    candidats = lister_candidats(img)
+    return candidats[0][1] if candidats else None

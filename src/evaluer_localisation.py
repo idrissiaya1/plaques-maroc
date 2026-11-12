@@ -10,7 +10,9 @@ SEUIL_IOU = 0.5
 
 
 def lire_verite(chemin_image):
-    """Première boîte annotée (x1, y1, x2, y2) en pixels."""
+    """Rectangle de la plaque (x1, y1, x2, y2) en pixels, lu dans le fichier label.
+    Gère deux formats : rectangle (classe xc yc largeur hauteur)
+    et polygone (classe x1 y1 x2 y2 x3 y3 ...)."""
     split_dir = os.path.dirname(os.path.dirname(chemin_image))
     nom = os.path.splitext(os.path.basename(chemin_image))[0]
     chemin_label = os.path.join(split_dir, "labels", nom + ".txt")
@@ -18,9 +20,17 @@ def lire_verite(chemin_image):
     h, w = img.shape[:2]
     with open(chemin_label) as f:
         ligne = f.readline().split()
-    _, xc, yc, bw, bh = map(float, ligne[:5])
-    return (int((xc - bw / 2) * w), int((yc - bh / 2) * h),
-            int((xc + bw / 2) * w), int((yc + bh / 2) * h))
+    valeurs = [float(v) for v in ligne[1:]]      # on ignore le numéro de classe
+
+    if len(valeurs) == 4:                        # rectangle : xc yc largeur hauteur
+        xc, yc, bw, bh = valeurs
+        x1, x2 = (xc - bw / 2) * w, (xc + bw / 2) * w
+        y1, y2 = (yc - bh / 2) * h, (yc + bh / 2) * h
+    else:                                        # polygone : x1 y1 x2 y2 ...
+        xs, ys = valeurs[0::2], valeurs[1::2]
+        x1, x2 = min(xs) * w, max(xs) * w
+        y1, y2 = min(ys) * h, max(ys) * h
+    return int(x1), int(y1), int(x2), int(y2)
 
 
 def iou(a, b):

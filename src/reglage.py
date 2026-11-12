@@ -61,5 +61,6 @@ if __name__ == "__main__":
     print("\n--- Référence (valeurs actuelles de localisation.py) ---")
     tester_parametres()
 
-    balayer("AIRE_MIN", [0.003, 0.005, 0.008, 0.012])
-    balayer("AIRE_MAX", [0.05, 0.10, 0.15, 0.30])
+    balayer("CANNY_HAUT", [150, 200, 250])
+    balayer("RATIO_IDEAL", [3.5, 4.0, 4.5, 5.0])
+    balayer("NOYAU", [(7, 3), (9, 3), (11, 3), (9, 5)])
